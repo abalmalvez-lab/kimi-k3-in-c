@@ -196,8 +196,9 @@ void k3_matmul(float *y, const float *x, const float *W, int in, int out);
  *   + T*(kv_lora+qk_rope)        compressed latent plus the shared rope slot
  *   + q_lora                     transient
  *   + 2*H*v_head                 attention accumulator and gate buffer
- *   + T                          scores
- * floats. Use k3_mla_scratch() rather than recomputing this.
+ *   + H*T                        scores, one row per head (the heads run in parallel)
+ * floats. Use k3_mla_scratch() rather than recomputing this: the score term grew from
+ * T to H*T in 2.0.0, and a hand-computed size from before then is now too small.
  */
 typedef struct {
     /* Tagged by wdt: fp32 when zero (every fixture), bf16 for the real checkpoint. */
@@ -530,8 +531,10 @@ void   k3_decoder_layer_inc(float *h, float *block_residual, int *n_blocks,
  *
  * E2M1 is 1 sign, 2 exponent, 1 mantissa, so exactly sixteen values:
  *   0, 0.5, 1, 1.5, 2, 3, 4, 6 and their negatives.
- * E8M0 is a bare biased exponent; 255 is NaN by spec and is mapped to zero here so a
- * single bad byte cannot poison a whole row.
+ * E8M0 is a bare biased exponent; 255 is NaN by spec. The loader refuses an expert
+ * whose scales contain it (k3_expert_nan_scales, at the point the bytes land in the
+ * cache), so these kernels should never see one; they still map it to zero rather than
+ * NaN, as defence in depth, so a byte that got past the loader cannot poison a whole row.
  *
  * NIBBLE ORDER IS A CONVENTION, NOT A RULE. The low nibble of each byte is the EVEN
  * element. Reversing it yields a matrix with exactly the right values in the wrong

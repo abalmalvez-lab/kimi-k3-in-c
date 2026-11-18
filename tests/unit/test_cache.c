@@ -94,8 +94,28 @@ int main(int argc, char **argv)
     }
     printf("streaming expert cache, %d tensors from %d shard(s)\n\n", st.nt, st.nshard);
 
+    {   /* Split-read coverage. A 3-chunk window of 12288 bytes whose payload ends 1000
+         * bytes short of it: the sum of a short middle chunk still clears the payload,
+         * which is how an expert with a hole in it used to be published. A read cannot
+         * be made to come back short on demand here, so the decision is tested alone. */
+        const int64_t CH = 4096, LEN = 3 * CH, NEED = LEN - 1000;
+        const int64_t full[3] = { CH, CH, CH };
+        const int64_t eof[3]  = { CH, CH, CH - 1000 };
+        const int64_t hole[3] = { CH, CH - 512, CH };
+        const int64_t first[3] = { CH - 1, CH, CH };
+        const int64_t last[3] = { CH, CH, CH - 1001 };
+        ck(k3_chunks_cover(full, 3, CH, LEN, NEED), "split read: full window covers", NULL);
+        ck(k3_chunks_cover(eof, 3, CH, LEN, NEED), "split read: short at EOF covers", NULL);
+        ck(!k3_chunks_cover(hole, 3, CH, LEN, NEED), "split read: short middle refused",
+           "sums past the payload");
+        ck(!k3_chunks_cover(first, 3, CH, LEN, NEED), "split read: short first refused", NULL);
+        ck(!k3_chunks_cover(last, 3, CH, LEN, NEED), "split read: short of payload refused",
+           NULL);
+    }
+
     K3Cfg c; memset(&c, 0, sizeof c);
     c.n_layers = 1; c.n_experts = NE; c.topk = 4;
+    c.latent = 64; c.moe_inter = 32;     /* tools/make_cache_fixture.py LATENT, INTER */
 
     /* Size the budget by asking, not by arithmetic. The cache rounds a slot up to an
      * O_DIRECT-widened, page-aligned size, so for these deliberately tiny fixture
@@ -110,9 +130,67 @@ int main(int argc, char **argv)
         if (k3_cache_init(&cache, &st, &c, budget) == 0) { ok_init = 1; break; }
     }
     if (!ok_init) { fprintf(stderr, "cache init failed at every budget\n"); return 2; }
+
+    {   /* The kernels multiply an expert as latent x moe_inter from the config, never from
+         * the tensor shapes, so an expert of any other shape must be refused, not read
+         * past. Transposed counts are the plausible mistake: the same byte total. */
+        K3Cfg bad = c; bad.latent = 32; bad.moe_inter = 64;
+        K3Cache tmp;
+        ck(k3_cache_init(&tmp, &st, &bad, probe.nbytes * 4096) != 0,
+           "cache refuses a config of another shape", "latent and moe_inter swapped");
+        ck(k3_expert_check_shape(&probe, c.latent, c.moe_inter) == 0,
+           "fixture experts match the config", NULL);
+        K3ExpertRef r = probe; r.m[1].rows = c.latent / 2;
+        ck(k3_expert_check_shape(&r, c.latent, c.moe_inter) != 0,
+           "a narrower w2 is refused", NULL);
+        r = probe; r.m[2].pcols = c.latent / 4;
+        ck(k3_expert_check_shape(&r, c.latent, c.moe_inter) != 0,
+           "a narrower w3 is refused", NULL);
+    }
     { char b[80]; snprintf(b, sizeof b, "%d slots for %d experts, top-%d",
                            cache.nslot, NE, c.topk);
       ck(cache.nslot >= c.topk + 1 && cache.nslot < NE, "cache under pressure", b); }
+
+    /* CLI can opt out of unbounded diagnostic memory without changing serving. */
+    {
+        K3ExpertQ q;
+        ck(cache.src.get(&cache.src, 0, 0, &q) == 0 && cache.ntrace == 2,
+           "library tracing remains enabled by default", "one request");
+        k3_cache_set_trace(&cache, 0);
+        int served = 1;
+        for (int i = 0; i < 1000; i++)
+            if (cache.src.get(&cache.src, 0, i % NE, &q) != 0) served = 0;
+        ck(served && !cache.trace && !cache.ntrace && !cache.captrace,
+           "disabled tracing allocates no request buffer", "1000 served requests");
+        k3_cache_set_trace(&cache, 1);
+        int first = cache.src.get(&cache.src, 0, 1, &q);
+        int second = cache.src.get(&cache.src, 0, 2, &q);
+        ck(!first && !second && cache.ntrace == 4 &&
+           cache.trace[0] == 0 && cache.trace[1] == 1 &&
+           cache.trace[2] == 0 && cache.trace[3] == 2,
+           "re-enabled trace preserves request order", "only subsequent requests");
+        uint64_t requests = 0;
+        for (int i = 0; i < NE; i++) requests += cache.hist[i];
+        ck(requests == 1003 && cache.hits + cache.misses == 1003,
+           "trace toggles preserve histogram and counts", "1003 model requests");
+
+        /* A dump is refused only when nothing was being recorded. An enabled trace
+         * with no requests in it is a result: a run that stops before the first routed
+         * layer writes an empty file instead of failing its --dump-cache-trace. The
+         * requests below repopulate the trace, so the full-device check later still
+         * has bytes to fail on. */
+        const char *tp = "k3_test_empty_trace.bin";
+        k3_cache_set_trace(&cache, 0);
+        ck(k3_cache_dump_trace(&cache, tp) != 0, "a disabled trace is not dumped", NULL);
+        k3_cache_set_trace(&cache, 1);
+        long tsz = -1;
+        if (k3_cache_dump_trace(&cache, tp) == 0) {
+            FILE *tf = fopen(tp, "rb");
+            if (tf) { fseek(tf, 0, SEEK_END); tsz = ftell(tf); fclose(tf); }
+        }
+        remove(tp);
+        ck(tsz == 0, "an enabled but empty trace dumps as an empty file", NULL);
+    }
 
     /* ---- 1+3: serial path, every expert, under eviction pressure ---- */
     int bad = 0;
@@ -179,7 +257,44 @@ int main(int argc, char **argv)
     { char b[64]; snprintf(b, sizeof b, "%d of %d wrong", bad3, NE);
       ck(bad3 == 0, "mixed batch and serial", b); }
 
+    /* Linux's full device reports buffered write errors only on flush/close. */
+    FILE *full = fopen("/dev/full", "wb");
+    if (full) {
+        fclose(full);
+        ck(k3_cache_dump_hist(&cache, "/dev/full") != 0,
+           "histogram flush failure is reported", "full device");
+        ck(k3_cache_dump_trace(&cache, "/dev/full") != 0,
+           "trace flush failure is reported", "full device");
+    } else {
+        printf("  SKIP  full-device cache output tests (no /dev/full)\n");
+    }
+
     k3_cache_free(&cache);
+
+    /* ---- 5: a shard set with no routed experts at all ----
+     * `download-model.sh --layers 1` fetches layer 0 only, and layer 0 is the dense
+     * layer, so the checkpoint on disk holds not one routed expert. The engine must
+     * still start: a --layers 1 run never asks the cache for anything. Model that here
+     * by declaring every layer dense, so the probe finds no expert, and require an
+     * empty cache that answers a request cleanly rather than a refusal. */
+    {
+        K3Cfg d = c;
+        d.first_dense = d.n_layers;
+        K3Cache empty;
+        const int rc = k3_cache_init(&empty, &st, &d, probe.nbytes * 8);
+        char b[64];
+        snprintf(b, sizeof b, "init returned %d, %d slots",
+                 rc, rc == 0 ? empty.nslot : -1);
+        ck(rc == 0 && empty.nslot == 0, "no-expert shard set: empty cache", b);
+        if (rc == 0) {
+            K3ExpertQ q;
+            const int g = empty.src.get(&empty.src, 0, 0, &q);
+            snprintf(b, sizeof b, "get returned %d", g);
+            ck(g != 0, "no-expert shard set: get() refuses", b);
+            k3_cache_free(&empty);
+        }
+    }
+
     k3_st_close(&st);
     printf("\n%s\n", g_fail ? "CACHE TESTS FAILED" : "CACHE TESTS PASSED");
     return g_fail ? 1 : 0;

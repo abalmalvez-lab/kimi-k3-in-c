@@ -49,6 +49,7 @@ typedef struct {
 
     const K3St  *st;
     int          n_layers, n_experts;
+    int          latent, moe_inter;   /* the expert shape every admitted expert must have */
 
     unsigned char *arena;         /* nslot * slot_bytes, page aligned          */
     int64_t      slot_bytes;
@@ -87,6 +88,7 @@ typedef struct {
      * whole curve: record (layer, expert) in request order, then simulate any
      * replacement policy at any capacity offline. 1,472 requests per token, 8 bytes
      * each, is 12 KB per token. */
+    int          trace_enabled;  /* library default: on; CLI opts in explicitly */
     int32_t     *trace;
     int64_t      ntrace, captrace;
 } K3Cache;
@@ -96,6 +98,10 @@ typedef struct {
  * without evicting an expert that is still in use. */
 int  k3_cache_init(K3Cache *c, const K3St *st, const K3Cfg *cfg, int64_t budget_bytes);
 void k3_cache_free(K3Cache *c);
+
+/* Disable/enable request tracing independently of the bounded histogram. Disabling
+ * discards the existing trace allocation; enabling records subsequent requests. */
+void k3_cache_set_trace(K3Cache *c, int enabled);
 
 /* Pin or unpin whatever slot currently holds this expert. Pinning a resident hot set
  * is the payoff from the histogram. Returns 0 if the expert was not resident. */
@@ -113,5 +119,27 @@ int  k3_cache_dump_hist(const K3Cache *c, const char *path);
 /* Write the access trace as a flat binary file of int32 pairs (layer, expert) in
  * request order. tools/sim_cache.py replays it at any capacity. */
 int  k3_cache_dump_trace(const K3Cache *c, const char *path);
+
+/* Whether a window read as nchunk chunks of `chunk` bytes (the last one shorter, to
+ * `len` total) holds its payload, which ends `need` bytes into the window. got[k] is
+ * what chunk k returned.
+ *
+ * Summing got[] is not the same test. The window is the payload widened to whole
+ * aligned blocks, so it carries up to K3_ST_ALIGN - 1 bytes of tail slack, and a sum
+ * cannot tell "the last chunk ended at EOF in that slack" from "a middle chunk came
+ * back short": a middle chunk losing no more than the slack still sums past `need`,
+ * and the expert is published, and then served as a hit, with a hole in it. Only the
+ * last chunk may be short, and only past `need`. */
+static inline int k3_chunks_cover(const int64_t *got, int nchunk, int64_t chunk,
+                                  int64_t len, int64_t need)
+{
+    for (int k = 0; k < nchunk; k++) {
+        const int64_t base = (int64_t)k * chunk;
+        const int64_t want = (k + 1 < nchunk) ? chunk
+                           : (need - base > 0 ? need - base : 0);
+        if (base >= len || got[k] < want) return 0;
+    }
+    return nchunk > 0;
+}
 
 #endif /* K3_CACHE_H */

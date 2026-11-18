@@ -5,8 +5,196 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The README matches 2.0.0 again.** The exit code 3 row covers every output file, the
+  chat paragraph documents `--top-k`, and trunk pinning is described as largest first.
+  Eight code excerpts that had fallen behind the source match it again: the aligned
+  safetensors read, the KDA step, MLA attention, both memory admission checks, trunk
+  pinning, the forward pass and the trunk layer read. Part II now says its excerpts are
+  condensed, and the MLA excerpt names the function it comes from.
+
+## [2.0.0] - 2026-11-15
+
+Long prompts stop being a one-core job, and a large round of fixes, most of them from
+outside contributors, makes everything that loads, parses, measures or certifies refuse a
+wrong input instead of quietly using it. Output is unchanged wherever it was already
+defined: every oracle gate still matches the reference exactly, at any thread count.
+
+Checked on the released checkpoint before tagging, on a 28-core AMD EPYC 9554. The full
+93-layer golden run (`tests/fixtures/golden`, prompt ids 3,4,5,6,7) gives logits that are
+byte-identical on 1.1.0 and 2.0.0, and byte-identical to the `c_logits.bin` the original
+campaign recorded; it emits token 2494 and agrees with the PyTorch reference to 5.2e-7
+relative error against a 5.1e-4 budget, top-10 overlap 10/10. The first eight layers, both
+MLA layers among them, give byte-identical logits and the same tokens on both versions for a
+613-token prompt, with no expert drops. Real layers 1 (KDA) and 3 (MLA) match the reference
+at float32 rounding, and `make test` passes there with the released tokenizer present,
+tokenizer parity 45/45.
+
+Compatibility notes, which are why this is a major version:
+
+- **`--save-state` files move to version 3.** The header is now part of the checksum. A
+  version 2 file is refused with a clear message rather than read; regenerate it with
+  `--gen 0 --incremental --save-state`.
+- **MLA scratch is larger.** The score term of `k3_mla_scratch_cached()` and
+  `k3_mla_scratch()` grew from T to H*T floats. Code that sizes scratch through the
+  helpers is unaffected; code that computed it by hand is now short. `K3Cache` gained
+  fields, so anything embedding it must be rebuilt.
+- **Chat sampling with both `--top-k` and `--top-p`** now measures the nucleus against the
+  mass that survives top-k, which is what the Hugging Face and vLLM samplers do. A
+  fixed-seed run that uses both flags samples differently; either flag alone is unchanged.
+- **Malformed numbers are refused.** `--gen`, `--spec`, `--trunk-ring`, the GB budgets,
+  `--temperature`, `--top-p`, `--seed` and `--stop-id` no longer go through `atoi`/`atof`:
+  `--gen 1junk`, an empty `--seed` or `--stop-id 4294967296` exit 2 instead of running a
+  different experiment. A prompt longer than 32,768 ids is refused instead of truncated.
+
+### Changed
+
+- **MLA attention runs across heads in parallel.** The causal attention loop was the one
+  serial O(T^2) piece of work left: a 21k-token prefill is ~1.6e14 multiply-adds across the
+  24 MLA layers, and all of it ran on one core, which is why ROADMAP item 1 said a long
+  prompt did not finish. Heads share only keys and values, and every reduction inside a
+  head keeps its serial order, so the output is bit-identical at any thread count;
+  `test_ops` now requires that on the MLA fixture. Decode at 4,096 positions, at the
+  released head geometry (`bench_kernels`, Intel Core Ultra 7 255H): 303.3 ms per MLA
+  layer on one thread, 38.6 ms on 16, 7.28 s/token to 0.93 s/token over the 24 layers,
+  with identical output hashes. Decode attention is linear in context, so at 32k the old
+  loop alone cost ~58 s per token on that machine.
+- **The CLI records the expert request trace only when asked for it.** It grew without
+  bound on every run, quadratically under full recompute, whether or not
+  `--dump-cache-trace` was given. Library users keep the old default and gain
+  `k3_cache_set_trace()` (#104).
+- **`make` rebuilds when compiler flags or headers change.** `make asan`, `debug` and
+  `portable` used to relink objects from whatever was built last, so `make asan` after
+  `make` produced a binary that was not instrumented (#95).
+- **The benchmark harnesses read the engine's own result JSON** instead of grepping logs,
+  require a fresh receipt per run, refuse a repetition count that would run nothing, and
+  refuse to certify identical output when no rung succeeded. `gb_read` stays routed-expert
+  bytes, the metric `docs/data/` publishes (#99, #106).
+- **The macOS CI job runs on `macos-15`.** GitHub retired `macos-14`, and the job had been
+  showing as cancelled on every pull request since early November.
+
 ### Added
 
+- **Memory admission respects cgroup limits.** On Linux the figure plans are checked
+  against is MemAvailable capped by the tightest memory cgroup the process sits in, so a
+  run inside a container or `systemd-run -p MemoryMax=` is refused with both numbers
+  instead of being OOM-killed. A control file that is present but unreadable fails closed
+  (#84).
+- **The tokenizer loader has a weightless gate.** `tests/fixtures/tok` is a 260-rank
+  synthetic vocabulary that only encodes correctly with rank BPE over byte-level keys,
+  plus one corrupt variant per refusal, so the loader runs in CI for the first time (#111).
+- **A Termux guide** for building and running the weightless suite on Android ARM64,
+  [docs/TERMUX.md](docs/TERMUX.md) (#109).
+
+### Fixed
+
+- **An expert whose E8M0 scales carried the NaN code loaded silently.** Scale byte 255 is
+  NaN by the OCP MX spec and no quantiser writes it; the kernels mapped it to zero and
+  skipped the 32-weight group, so a damaged shard ran with pieces of experts missing and
+  nothing said so. The streaming cache now scans the scale bytes of every expert as they
+  land in memory, 1 byte per 32 weights, and refuses the expert naming the shard file, the
+  tensor and the count; the run then fails the way a missing tensor fails it. The kernel
+  mapping stays as defence in depth. Checked against the released checkpoint by range
+  request: 284.9 MB of real scale bytes, three experts in each of the 92 MoE layers,
+  contain no 255 (#86).
+- **An expert of the wrong shape was multiplied past its own bytes.** The kernels index
+  every expert with the config's `latent` and `moe_inter`, and the cache only checked an
+  expert against itself. Experts are now held to the config's shape, the probe that sizes
+  every slot included. All 82,432 experts in the released headers have that shape (#115).
+- **A split expert read with a short middle chunk was published with a hole in it.**
+  Coverage was decided from the sum of the chunks, and the aligned window's tail slack let a
+  short middle chunk still reach the payload end, the pattern NFS, SMB and FUSE produce
+  after a partial read (#114).
+- **`--layers 1` could not run.** Its shard set holds no routed expert, so the cache refused
+  to start, and the documented ~7 GB development path exited 1 on every machine (#87).
+- **A state file's header was trusted.** Its layout fields sized reads into buffers the
+  caller had sized from its own config: one too large overran them, and a shifted pair
+  moved KV rows into the rope cache with the checksum still matching. They are checked
+  against the config before any read, impossible counts are refused at peek, before the CLI
+  sizes anything from them, and trailing bytes are refused (#113).
+- **A prompt longer than the ceiling was silently cut** to its first 32,768 ids, usually
+  losing the question; the refusal meant to catch it could never fire (#112).
+- **A corrupt or truncated `tiktoken.model` loaded.** A download cut inside the last rank
+  replaced rank 1; one cut at a line boundary lost the tail of the vocabulary and still
+  passed a roundtrip. Ranks must now be exactly 0..N-1 once each, with added tokens right
+  after them (#111).
+- **A failed `--out`, logits dump or trace write exited 0**, because buffered writes only
+  fail at close; they now exit 3. An enabled but empty trace is written as an empty file
+  rather than failing a `--layers 1` run (#101).
+- **The chat sampler turned NaN or infinite logits into a token**, and a tiny temperature
+  could overflow to inf - inf; both are refused or handled now (#91).
+- **The tools, scripts and harnesses that certify results could certify nothing.**
+  `conform_all.py` reported ALL LAYERS CONFORM for an empty range, resolved paths against
+  the wrong directory, and could verify a stale dump from an earlier run (#93, #96, #108).
+  `cmp_logits.py` claimed full-model verification for any two matching arrays (#94).
+  `devbw.py` counted short reads as full ones and measured buffered reads under an
+  O_DIRECT label (#92). `qdq_trunk.py` silently ignored a group size it could not use
+  (#97), `int8_trunk.py` could truncate its own source (#105), `pack_trunk.py` destroyed a
+  good trunk when a pack failed (#107), `budget.py` crashed on partial shard sets (#100),
+  `tok.py` searched the wrong root and overrode an explicit `K3_TOK_FILES` (#102),
+  `sim_cache.py` replayed malformed traces (#103), and `k3-doctor.sh` could delete a
+  caller's file of the same name as its probe (#98).
+- **On Windows with the released tokenizer present, `make test` failed** in `test_chat`,
+  which wrote to a literal `/tmp`; Termux has no `/tmp` either. The tests honour
+  `TEMP`/`TMP`/`TMPDIR`. `make tok TOK_FILES=...` now passes `TOK_FILES` through, as
+  docs/TESTING.md always said it did.
+
+- **The trunk report counted a prefetched layer as a hit** whenever its read finished
+  before the walk bound it. On a fully streamed run of the tiny checkpoint, every one of
+  the 156 layer binds was a real read ("reads 156 against 156 the walk owes"), and the
+  line above it still said `hits 144 (92.3%), reads 12`. A layer the reader fetched
+  ahead is now charged as a read to the bind that reaches it, whichever thread gets there
+  first, so the counts no longer depend on timing and the hit rate again tracks the
+  pinned fraction. Counting only: output is unchanged. This was also the cause of an
+  intermittent `test_trunk` failure on CI, which now tests both interleavings.
+
+## [1.1.0] - 2026-10-02
+
+Chat, native Windows builds alongside Linux and macOS, an 8 GB class mode for the
+complete model, NEON kernels for ARM, and a round of hardening on everything that parses
+checkpoint files. Output is unchanged wherever it was already defined: every oracle gate
+still matches the reference exactly.
+
+One compatibility note: `--save-state` files move to version 2, with a checksum. A
+version 1 file is refused with a clear message rather than read; regenerate it with
+`--gen 0 --incremental --save-state`.
+
+### Added
+
+- **`--preset ultra` and `--ultra-low-memory`**: the complete 93 layer model inside an
+  8 GB class memory budget, by streaming exact embedding rows and bounded lm_head chunks
+  and reusing one recurrent state slot. Same weights, same top-16 routing, same kernels.
+  Verified with four full runs on a Jetson Orin Nano Super against the released
+  checkpoint, identical ids and identical logits each time. Slow, by design.
+- **NEON kernels on aarch64** for the bf16, MXFP4 and q8 matmuls, so Apple Silicon and
+  ARM servers are no longer scalar only. Bit identical to the scalar path.
+- **`--chat`**: a terminal REPL implementing K3's official XTML chat format, message
+  envelopes, the `thinking_effort` system preamble, and `reasoning_content` on prior
+  assistant turns, rendered exactly as the checkpoint's own encoder does, with JSONL
+  history and a parser for one assistant completion. Greedy by default; `--temperature`,
+  `--top-p`, and `--seed` opt in to sampling. `--no-think` and `--thinking-effort low`,
+  `high`, or `max` skip or size the think channel, which on a short answer is most of
+  the cost. Without a chat template the engine had completed a chat-shaped prompt as if
+  it were mid document rather than answering it.
+- **`--trunk-ring N`**: the streaming trunk's prefetch queue depth is now a flag
+  (default 2) instead of fixed at two slots.
+- **Ctrl-C stops at a safe point.** The first Ctrl-C lets the step in flight finish,
+  then writes the state file, the `--out` JSON and the reports exactly as a finished run
+  would, and exits 5. A second Ctrl-C kills. Before, SIGINT discarded everything.
+- **Chat reuses the previous turn's state.** When the next turn's rendered prompt begins
+  with exactly the ids the carried state was built from, only the new tail is prefilled.
+  GATE 3b in the oracle requires that to be bit identical to a full prefill: logits, every
+  KV row, and the KDA state.
+- **`--top-k K`** for chat sampling, on the existing sampler. Off by default.
+- **`--threads N`**, and a default of the physical core count on Linux instead of one
+  thread per logical CPU, which measured about 23% slower per token on a 16 core SMT part.
+- **`download-model.sh <dest> --layers N`** fetches only the shards a `--layers N` run
+  needs, resolved from the Hub's own index, with a banner saying the result is not the
+  model.
+- **A missing tensor names the missing file.** The shard filenames declare the shard
+  count, so a partial download now says which file is absent instead of only which
+  tensor.
 - **`--stop-id N`** (repeatable, up to 8): generation halts as soon as the model emits
   a listed token id. Off by default, so `--gen N` still means exactly N tokens for
   every benchmark and oracle gate. The stop id stays in the sequence, so `--save-state`
@@ -36,6 +224,11 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **The MXFP4 expert matmul is about 1.6x faster**, decoding nibbles in register, plus
+  another 1.56x from a flat-row AVX2 path when the group is a multiple of 16. Bit
+  identical, checked against the kernel hashes before and after.
+- **Expert reads are split into 1 MiB chunks**, so a batch of reads no longer waits on its
+  slowest expert. Output is unchanged.
 - **Trunk layers are read in parallel chunks.** `load_run()` streamed each layer with
   one sequential `pread` loop, so the device saw queue depth 1. It now splits the layer
   into 64 MiB chunks (a multiple of `K3_TRUNK_ALIGN`, so every chunk stays aligned for
@@ -43,9 +236,58 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   expert path already does. Without OpenMP the loop still runs one chunk at a time. A
   short read in any chunk fails the whole layer, as before, and the decoded output and
   `trunk_bytes_read` are unchanged.
+- **Trunk layers are pinned largest-first instead of as a prefix.** Prefix pinning
+  always pinned the 2.34 GB dense layer first, which sized the streaming ring's slot to
+  it even after it stopped needing the ring at all. `K3_PIN_PREFIX=1` restores the old
+  order on the same binary.
 
 ### Fixed
 
+- **macOS could not read the embedding table or a packed trunk layer.** Darwin's pread
+  refuses a single request of 2 GiB or more, and both exceed it; reads are now chunked.
+  The download script also works on macOS and with current huggingface_hub releases.
+- **CMake on Apple Silicon and on macOS.** The ARM64 build was handed x86 flags, and the
+  macOS build silently came out single threaded because CMake could not find Homebrew's
+  libomp. Both are fixed.
+- **`k3_matmul_mxfp4` now enforces its documented preconditions.** An odd input width or a
+  group above 64 aborts with a message instead of writing past the caller's buffer.
+- **`--preset auto` refused itself on large machines.** It planned to 98% of available
+  memory while admission allowed 95%, so from about 100 GB of RAM upward the recommended
+  preset could never start, and the refusal printed a negative shortfall. One constant
+  now drives both.
+- **On macOS the available memory read as 0**, which silently switched off both memory
+  refusals. Darwin and Windows now have their own probes, and Windows also caps by the
+  remaining commit limit.
+- **A state file could be wrong without the loader noticing.** One flipped byte restored
+  cleanly, and a save that failed partway destroyed the previous good file. The payload
+  is now checksummed and the file published by an atomic rename. State files move to
+  version 2; a version 1 file is refused rather than guessed at.
+- **Safetensors headers whose tensor spans overlap or leave a gap** were read without
+  complaint, shifting every tensor after them. They are refused now, the same rule the
+  reference loader applies; all 96 shards of the released checkpoint pass it.
+- **The JSON parser read past the end of a truncated string** and accepted incomplete
+  documents. Both are refusals now. Every JSON file the engine reads from the released
+  checkpoint parses to the same tree as before.
+- **A refused trunk.json leaked its whole parse tree**, and `--ids` values past the int
+  range wrapped to a real token id.
+- **Hostile or corrupt safetensors, trunk, and config input could reach undefined
+  behavior instead of a refusal.** Integer overflow in shape and offset arithmetic
+  (a hostile shape or `data_offsets` pair near `INT64_MAX` could wrap and defeat the
+  bounds checks meant to catch it), an out-of-bounds read on an empty trunk layer
+  array, a batched MoE prefill path that summed uninitialized memory when an expert
+  failed to load instead of contributing zero as the per-token path already does, and
+  unchecked allocations in the JSON parser and the shard directory listing that could
+  crash through a null pointer rather than fail cleanly. A new weightless test,
+  `test_st_faults`, builds mutated copies of the fixture shards and asserts each
+  failure mode is refused loudly. No input that was already valid changes.
+- **`--ids` with a non-numeric piece silently became token id 0** instead of being
+  refused, because a failed `strtol` call and a real id of 0 are indistinguishable
+  without checking where parsing stopped.
+- **`--layers 0` or a value past the real layer count silently ran the complete
+  model**, as if `--layers` had not been given, instead of being refused as the typo
+  it almost always is.
+- **An `--out` path that could not be written still exited 0**, indistinguishable from
+  a run whose result was actually saved. It now exits 3.
 - **`k3_run.json` was not valid JSON after a run that generated nothing.** With
   `nout == 0` the `seconds_per_token` field computed `t_total / nout` and emitted a
   bare `inf`, so a harness driving `--gen 0 --save-state` failed on the one run it
@@ -159,6 +401,8 @@ First public release.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md).
 
-[Unreleased]: https://github.com/FareedKhan-dev/kimi-k3-in-c/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/FareedKhan-dev/kimi-k3-in-c/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/FareedKhan-dev/kimi-k3-in-c/compare/v1.1.0...v2.0.0
+[1.1.0]: https://github.com/FareedKhan-dev/kimi-k3-in-c/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/FareedKhan-dev/kimi-k3-in-c/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/FareedKhan-dev/kimi-k3-in-c/releases/tag/v0.1.0

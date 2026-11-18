@@ -13,6 +13,7 @@
 #endif
 
 #include "k3_cache.h"
+#include "k3_output.h"
 
 static double now_s(void)
 {
@@ -73,6 +74,7 @@ static int admit(K3Cache *c, int layer, int expert)
 
     K3ExpertRef r;
     if (k3_expert_ref(c->st, layer, expert, &r) != 0) return -1;
+    if (k3_expert_check_shape(&r, c->latent, c->moe_inter) != 0) return -1;
     if (r.nbytes > c->slot_bytes) {
         fprintf(stderr, "k3_cache: L%d expert %d is %lld bytes, slot holds %lld\n",
                 layer, expert, (long long)r.nbytes, (long long)c->slot_bytes);
@@ -101,12 +103,64 @@ static int admit(K3Cache *c, int layer, int expert)
     }
     c->bytes_read += (uint64_t)got;
 
+    /* The bytes are in memory for the first time: the one place to refuse an expert
+     * whose scales carry the E8M0 NaN code, before any kernel folds it in as zero. The
+     * slot is released, so get() fails and k3_moe counts an EXPERT DROP, the same path
+     * a missing tensor takes. See k3_expert_nan_scales. */
+    {
+        char why[1024];
+        if (k3_expert_nan_scales(c->st, &r, c->arena + (size_t)slot * c->slot_bytes + pad,
+                                 why, sizeof why)) {
+            fprintf(stderr, "%s\n", why);
+            c->key_of[slot] = K3_SLOT_EMPTY;
+            return -1;
+        }
+    }
+
     c->ref[slot] = r;
     c->pad[slot] = (int32_t)pad;
     c->key_of[slot] = key;
     c->slot_of[key] = slot;
     c->used_at[slot] = ++c->clock;
     return slot;
+}
+
+/* Bytes per chunk of a split expert read. 1 MiB by default.
+ *
+ * Measured on the released checkpoint, trunk 114 GB / cache 2 GB, 16 threads bound to
+ * cores, steady-state decode. Same binary throughout, only this value changed:
+ *
+ *     chunk       per expert   s/token   expert GB/s
+ *     (unsplit)        1        5.602       11.14
+ *     4 MiB            5        5.402       11.96
+ *     2 MiB            9        5.325       12.26
+ *     1 MiB           17        5.281       12.40
+ *     512 KiB         34        5.286       12.34
+ *
+ * The curve turns at 512 KiB, so this is an optimum rather than a limit: past it the extra
+ * syscalls cost more than the improved balance saves. Generated token ids were identical at
+ * every point, which they must be -- the cache decides only whether bytes come from RAM or
+ * disk, never which experts the router chose.
+ *
+ * Overridable because the two existing A/B switches in this engine, K3_NOPREFETCH and
+ * K3_NOHUGE, exist for the same reason: comparing two BUILDS compares two binaries, while
+ * comparing one binary under two settings compares one decision. It also lets
+ * tests/unit/test_cache.c reach the chunked path at all -- the fixture's experts are
+ * 1,632 bytes, so at any sane default every fixture read takes the single-chunk fallback
+ * and the split would otherwise ship untested.
+ *
+ * Rounded up to K3_ST_ALIGN: O_DIRECT requires every offset and length to be a multiple
+ * of it, and the whole point of dividing the enclosing window is that each piece stays
+ * aligned. */
+static int64_t expert_chunk_bytes(void)
+{
+    static int64_t cached = 0;
+    if (cached) return cached;
+    const char *e = getenv("K3_EXPERT_CHUNK");
+    int64_t n = e ? strtoll(e, NULL, 10) : ((int64_t)1 << 20);
+    if (n < K3_ST_ALIGN) n = K3_ST_ALIGN;
+    cached = (n + K3_ST_ALIGN - 1) & ~(int64_t)(K3_ST_ALIGN - 1);
+    return cached;
 }
 
 /* Bring a whole top-k resident, with the reads issued CONCURRENTLY.
@@ -133,7 +187,11 @@ static int cache_getmany(K3ExpertSrc *self, int layer, const int *ids, int n)
     K3Cache *c = (K3Cache *)self;
     if (n <= 0) return 0;
 
-    typedef struct { int slot; int expert; K3ExpertRef r; int64_t got, pad; } Work;
+    typedef struct {
+        int slot; int expert; K3ExpertRef r; int64_t got, pad;
+        int64_t lo, len, chunk;   /* enclosing O_DIRECT window, divided into chunks */
+        int nchunk, cbase;
+    } Work;
     /* One entry per expert in a batch prefetch, so it is bounded by top-k. */
     Work w[K3_MAX_TOPK];
     int nw = 0;
@@ -152,6 +210,8 @@ static int cache_getmany(K3ExpertSrc *self, int layer, const int *ids, int n)
 
         K3ExpertRef r;
         if (k3_expert_ref(c->st, layer, e, &r) != 0) continue;
+        /* Skipped, not refused: the serial get that follows refuses it loudly. */
+        if (k3_expert_check_shape(&r, c->latent, c->moe_inter) != 0) continue;
         if (r.nbytes > c->slot_bytes) continue;
 
         const int slot = pick_victim(c);
@@ -179,20 +239,97 @@ static int cache_getmany(K3ExpertSrc *self, int layer, const int *ids, int n)
         w[j + 1] = t;
     }
 
-    /* ---- phase 2: read, concurrently ---- */
+    /* ---- phase 2: read, concurrently ----
+     *
+     * Each expert is divided into aligned chunks and the loop is flattened over
+     * (expert, chunk), so there are nw * nchunk work items rather than nw.
+     *
+     * WHY, and it is measured rather than supposed. With one item per expert and one
+     * thread per item, schedule(dynamic) has nothing left to balance: the layer cannot
+     * finish until the SLOWEST of the top-k reads does. fio on this machine, at exactly
+     * this pattern -- 17,547,264-byte O_DIRECT random reads, 16 concurrent, on the real
+     * shard files -- gives mean latency 19.55 ms against max 25.45 ms, a ratio of 1.30x.
+     * The engine sustained 11.11 GB/s where fio sustained 14.32 GB/s on the same files,
+     * and 1.29x of that shortfall is this tail. More, smaller items let a thread that
+     * finishes early take another, so the tail costs one chunk instead of one expert.
+     *
+     * Alignment is preserved by construction: the enclosing window [lo, hi) is computed
+     * once per expert and divided at multiples of K3_ST_ALIGN, so every chunk offset and
+     * length still satisfies O_DIRECT. Scattered (non-contiguous) experts keep the
+     * single-call path, which already issues six preads of its own.
+     */
+#define K3_EXPERT_ITEMS (K3_MAX_TOPK * 8)
+
+    const int64_t CH = expert_chunk_bytes();
+    int owner[K3_EXPERT_ITEMS], within[K3_EXPERT_ITEMS];
+    int64_t cgot[K3_EXPERT_ITEMS];
+    /* Chunks per expert are budgeted, not merely clamped.
+     *
+     * nw is NOT bounded by top-k here: moe_prefill_chunk passes the whole batch's unique
+     * expert set, so nw reaches K3_MAX_TOPK (64), and a small K3_EXPERT_CHUNK would then
+     * ask for 64 x 17 = 1088 items against these arrays. A per-expert cap of
+     * K3_EXPERT_ITEMS / nw keeps the total within bounds by construction and is always at
+     * least 8, because K3_EXPERT_ITEMS is 8 * K3_MAX_TOPK.
+     *
+     * The chunk SIZE is recomputed whenever the count is capped. Capping the count alone
+     * would leave the tail of the window unread, the payload short, and the slot released
+     * as a failed load -- a silent loss of an expert rather than a crash. */
+    const int max_per = (nw > 0) ? (K3_EXPERT_ITEMS / nw) : 1;
+    int nitem = 0;
+    for (int i = 0; i < nw; i++) {
+        int64_t ch = CH;
+        if (w[i].r.contiguous) {
+            w[i].lo  = w[i].r.off & ~(int64_t)(K3_ST_ALIGN - 1);
+            w[i].pad = w[i].r.off - w[i].lo;
+            w[i].len = ((w[i].r.off + w[i].r.nbytes + K3_ST_ALIGN - 1)
+                        & ~(int64_t)(K3_ST_ALIGN - 1)) - w[i].lo;
+            w[i].nchunk = (int)((w[i].len + ch - 1) / ch);
+            if (w[i].nchunk > max_per) {
+                ch = ((w[i].len + max_per - 1) / max_per + K3_ST_ALIGN - 1)
+                     & ~(int64_t)(K3_ST_ALIGN - 1);
+                w[i].nchunk = (int)((w[i].len + ch - 1) / ch);
+            }
+        } else {
+            w[i].lo = 0; w[i].pad = 0; w[i].len = 0; w[i].nchunk = 1;
+        }
+        w[i].chunk = ch;
+        w[i].cbase = nitem;
+        for (int ci = 0; ci < w[i].nchunk; ci++) {
+            owner[nitem] = i; within[nitem] = ci; cgot[nitem] = 0; nitem++;
+        }
+    }
+
     const double t0 = now_s();
 #ifdef _OPENMP
 #   pragma omp parallel for schedule(dynamic, 1)
 #endif
-    for (int i = 0; i < nw; i++) {
-        int64_t pad = 0;
-        const int64_t got = k3_expert_load_direct(
-            c->st, &w[i].r, c->arena + (size_t)w[i].slot * c->slot_bytes,
-            c->slot_bytes, &pad);
-        w[i].got = got;
-        w[i].pad = pad;
+    for (int k = 0; k < nitem; k++) {
+        const int i = owner[k];
+        unsigned char *dst = c->arena + (size_t)w[i].slot * c->slot_bytes;
+        if (!w[i].r.contiguous || w[i].nchunk == 1) {
+            int64_t pad = 0;
+            cgot[k] = k3_expert_load_direct(c->st, &w[i].r, dst, c->slot_bytes, &pad);
+            w[i].pad = pad;
+            continue;
+        }
+        const int64_t base = (int64_t)within[k] * w[i].chunk;
+        int64_t len = w[i].len - base;
+        if (len > w[i].chunk) len = w[i].chunk;
+        int64_t p = 0;
+        cgot[k] = k3_st_read_aligned(c->st, w[i].r.shard, w[i].lo + base, len,
+                                     dst + base, c->slot_bytes - base, &p);
     }
     c->load_seconds += now_s() - t0;
+
+    for (int i = 0; i < nw; i++) {
+        if (!w[i].r.contiguous || w[i].nchunk == 1) { w[i].got = cgot[w[i].cbase]; continue; }
+        /* Chunks return window bytes from lo. Only the final chunk of a shard can be
+         * short at EOF, and only past pad+nbytes -- the same test k3_st_read_aligned
+         * applies to a whole-expert read. A total cannot express that; see
+         * k3_chunks_cover. */
+        w[i].got = k3_chunks_cover(cgot + w[i].cbase, w[i].nchunk, w[i].chunk, w[i].len,
+                                   w[i].pad + w[i].r.nbytes) ? w[i].r.nbytes : 0;
+    }
 
     /* ---- phase 3: publish only what actually arrived ---- */
     int ok = 0;
@@ -203,6 +340,19 @@ static int cache_getmany(K3ExpertSrc *self, int layer, const int *ids, int n)
                     layer, w[i].expert, (long long)w[i].got, (long long)w[i].r.nbytes);
             c->key_of[w[i].slot] = K3_SLOT_EMPTY;       /* release the reservation */
             continue;
+        }
+        /* Same check as admit(), same outcome: the slot stays empty, the get() that
+         * follows every prefetch re-reads the expert, refuses it again and the caller
+         * sees the drop. The line is printed on both attempts. */
+        {
+            char why[1024];
+            if (k3_expert_nan_scales(c->st, &w[i].r,
+                                     c->arena + (size_t)w[i].slot * c->slot_bytes + w[i].pad,
+                                     why, sizeof why)) {
+                fprintf(stderr, "%s\n", why);
+                c->key_of[w[i].slot] = K3_SLOT_EMPTY;
+                continue;
+            }
         }
         const int32_t key = layer * c->n_experts + w[i].expert;
         c->ref[w[i].slot] = w[i].r;
@@ -244,14 +394,16 @@ static int cache_get(K3ExpertSrc *self, int layer, int expert, K3ExpertQ *out)
     /* Record the request before serving it. The trace must reflect what the MODEL
      * asked for, independent of what the cache happened to hold, or replaying it at a
      * different capacity would be meaningless. */
-    if (c->ntrace + 2 > c->captrace) {
-        int64_t nc = c->captrace ? c->captrace * 2 : (1 << 16);
-        int32_t *nt = (int32_t *)realloc(c->trace, (size_t)nc * sizeof(int32_t));
-        if (nt) { c->trace = nt; c->captrace = nc; }
-    }
-    if (c->ntrace + 2 <= c->captrace) {
-        c->trace[c->ntrace++] = layer;
-        c->trace[c->ntrace++] = expert;
+    if (c->trace_enabled) {
+        if (c->ntrace + 2 > c->captrace) {
+            int64_t nc = c->captrace ? c->captrace * 2 : (1 << 16);
+            int32_t *nt = (int32_t *)realloc(c->trace, (size_t)nc * sizeof(int32_t));
+            if (nt) { c->trace = nt; c->captrace = nc; }
+        }
+        if (c->ntrace + 2 <= c->captrace) {
+            c->trace[c->ntrace++] = layer;
+            c->trace[c->ntrace++] = expert;
+        }
     }
 
     const int slot = admit(c, layer, expert);
@@ -263,6 +415,7 @@ static int cache_get(K3ExpertSrc *self, int layer, int expert, K3ExpertQ *out)
 int k3_cache_init(K3Cache *c, const K3St *st, const K3Cfg *cfg, int64_t budget_bytes)
 {
     memset(c, 0, sizeof *c);
+    c->trace_enabled = 1;  /* preserve the library's existing trace behavior */
     c->src.get = cache_get;
     c->src.resident = cache_resident;
     /* K3_NOPREFETCH=1 disables the batch path at runtime. An A/B between two BUILDS
@@ -276,16 +429,39 @@ int k3_cache_init(K3Cache *c, const K3St *st, const K3Cfg *cfg, int64_t budget_b
     c->st = st;
     c->n_layers = cfg->n_layers;
     c->n_experts = cfg->n_experts;
+    c->latent = cfg->latent;
+    c->moe_inter = cfg->moe_inter;
 
     /* Size a slot from the checkpoint rather than from arithmetic: find any expert and
-     * ask how many bytes it actually occupies. */
+     * ask how many bytes it actually occupies. The probe is shape-checked first: a slot
+     * sized from a smaller expert than the kernels index would have every one of them
+     * read past its slot, and the last one past the arena. */
     K3ExpertRef probe;
     int found = 0;
     for (int L = 0; L < cfg->n_layers && !found; L++) {
         if (k3_is_dense(cfg, L)) continue;
         if (k3_expert_ref(st, L, 0, &probe) == 0) found = 1;
     }
-    if (!found) { fprintf(stderr, "k3_cache: no routed experts in this shard set\n"); return -1; }
+    if (!found) {
+        /* A `download-model.sh --layers 1` shard set holds layer 0 only, and layer 0
+         * is dense, so there is no expert to size a slot from. That run never asks
+         * the cache for anything, so refusing to start here would turn the documented
+         * one-layer development path into a dead end. Build an EMPTY cache instead:
+         * zero slots, no arena, and a key table that answers every lookup with -1, so a
+         * run that does reach a routed layer fails at the request with the missing
+         * tensor named by k3_st, not here with a shard set that may be exactly as
+         * ordered. */
+        fprintf(stderr, "k3_cache: no routed experts in this shard set; the expert cache "
+                        "is empty. Only a run that stops before the first routed layer "
+                        "(--layers 1) can succeed.\n");
+        const size_t nkey = (size_t)c->n_layers * c->n_experts;
+        c->slot_of = (int32_t *)malloc(nkey * sizeof(int32_t));
+        c->hist    = (uint32_t *)calloc(nkey, sizeof(uint32_t));
+        if (!c->slot_of || !c->hist) { k3_cache_free(c); return -1; }
+        for (size_t i = 0; i < nkey; i++) c->slot_of[i] = -1;
+        return 0;
+    }
+    if (k3_expert_check_shape(&probe, c->latent, c->moe_inter) != 0) return -1;
     /* Room for an O_DIRECT read widened outward to 4096 boundaries at both ends. */
     /* Round the SLOT STRIDE up to the O_DIRECT alignment, not just the arena base.
      *
@@ -360,16 +536,35 @@ void k3_cache_free(K3Cache *c)
     memset(c, 0, sizeof *c);
 }
 
+void k3_cache_set_trace(K3Cache *c, int enabled)
+{
+    c->trace_enabled = enabled != 0;
+    if (!c->trace_enabled) {
+        free(c->trace);
+        c->trace = NULL;
+        c->ntrace = c->captrace = 0;
+    }
+}
+
 int k3_cache_dump_trace(const K3Cache *c, const char *path)
 {
-    if (!c->trace || c->ntrace == 0) return -1;
+    /* Nothing was being recorded: there is no trace to write, empty or otherwise. */
+    if (!c->trace_enabled) return -1;
+    /* Recorded, but empty, is a result rather than a failure. A run that stops before
+     * the first routed layer (--layers 1) asks the cache for nothing, and since a failed
+     * dump now fails the run with exit 3, refusing here would turn
+     * `--layers 1 --dump-cache-trace` into an error. The file is written with zero
+     * requests; tools/sim_cache.py refuses to replay an empty one, by name. */
     FILE *f = fopen(path, "wb");
     if (!f) return -1;
-    const size_t n = fwrite(c->trace, sizeof(int32_t), (size_t)c->ntrace, f);
-    fclose(f);
+    const size_t want = c->trace ? (size_t)c->ntrace : 0;
+    const size_t n = want ? fwrite(c->trace, sizeof(int32_t), want, f) : 0;
+    int failed = n != want;
+    if (k3_output_close(f) != 0) failed = 1;
+    if (failed) return -1;
     printf("wrote %s: %lld requests (%.1f KB)\n",
            path, (long long)(c->ntrace / 2), (double)c->ntrace * 4 / 1024.0);
-    return n == (size_t)c->ntrace ? 0 : -1;
+    return 0;
 }
 
 int k3_cache_pin(K3Cache *c, int layer, int expert, int pin)
@@ -444,6 +639,5 @@ int k3_cache_dump_hist(const K3Cache *c, const char *path)
         }
     }
     fprintf(f, "}}\n");
-    fclose(f);
-    return 0;
+    return k3_output_close(f);
 }

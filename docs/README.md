@@ -6,6 +6,7 @@
 |---|---|
 | [QUICKSTART.md](QUICKSTART.md) | from nothing to generated text |
 | [TUNING.md](TUNING.md) | choosing a memory budget, one decision dominates |
+| [TERMUX.md](TERMUX.md) | building and running the weightless suite on Android ARM64 |
 
 ## Reference
 
@@ -18,6 +19,10 @@
 | [BENCHMARKING.md](BENCHMARKING.md) | how to measure without fooling yourself |
 | [ROADMAP.md](ROADMAP.md) | what is missing, in priority order |
 | [data/](data/) | the raw measurement output every table is transcribed from |
+
+Text-only official XTML chat is documented in the main [README](../README.md#text-chat-official-kimi-k3-xtml).
+It remains CPU- and disk-bound and uses the same streamed trunk and expert-cache budgets as
+batch generation.
 
 ## Upstream material
 

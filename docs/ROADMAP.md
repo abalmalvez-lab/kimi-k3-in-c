@@ -2,13 +2,21 @@
 
 Ordered by value, with the reasoning stated so the order can be argued with.
 
-## 1. Chunked prefill, the highest-value missing piece
+## 1. Long prompts: what is left after 2.0.0
 
-Prefill currently runs as a single forward pass over the whole prompt, and attention in
-the 24 MLA layers is quadratic in sequence length. The practical effect: the context
-ceiling is 32k tokens, but a 21k-token prompt does not complete in reasonable time.
+The part that made a long prompt impractical is done: MLA attention, quadratic in sequence
+length and the one serial O(T^2) loop in the engine, runs across the 96 heads in parallel
+since 2.0.0, bit-identical at any thread count. Two costs remain, and both are now the
+things worth measuring.
 
-Raising the ceiling was necessary and is done. This is the part that makes it usable.
+Prefill is still one forward pass over the whole prompt, so its activations grow with it,
+about 14 GB at 32k positions next to a 77.7 GB KV cache. Chunked prefill would bound that,
+reusing the tail-prefill path GATE 3b already proves exact.
+
+Every prompt token still re-reads the trunk from memory for its projections, about 109 GB
+of bf16 per token, which a batched projection kernel would amortise across a chunk. The
+batched bf16 kernel from #67 is the starting point, once a wall-clock number on a long
+prefill shows it winning.
 
 ## 2. Re-run the published campaign under the replicating harness
 
@@ -33,14 +41,21 @@ un-vectorised kernel on the non-I/O path.
 
 ## 5. Sampling
 
-Greedy only today. Adding temperature and top-p is small, but note the trade-off: greedy
-decoding is what makes output identical across memory budgets, which is a property the
-test-suite depends on. Sampling must be opt-in and off by default.
+Batch generation is greedy only. Chat has opt-in temperature, top-p and seed
+(`--temperature`, `--top-p`, `--seed`), and is greedy until one of them is given. Keep
+it that way: greedy decoding is what makes output identical across memory budgets, which
+is a property the test suite depends on.
 
-## 6. Chat template
+## 6. Chat retained-state equivalence
 
-K3 ships an XTML chat format. Without it the engine produces base-model continuations,
-which is why asking a question gets the question completed rather than answered.
+Text chat implements K3's official XTML formatting, JSONL restart, and, under
+`--incremental`, retains the KDA/MLA state across REPL turns: the ids are recorded where
+they are fed (`src/chat/k3_prefix.h`), and a turn whose rendered transcript begins with
+exactly that record prefills only its tail. The equivalence gate that had to exist first
+is GATE 3b of `tests/unit/k3_model.c`: turn 2 on top of turn 1's state must be
+bit-identical -- logits, every KV row, the KDA state -- to a full prefill of the same
+transcript. Any divergence (`/reset`, an edited history) starts over. Restart from a
+`--history` file still re-prefills: no opaque state is serialised.
 
 ## 7. Vision
 
@@ -48,10 +63,10 @@ K3 is natively multimodal. The vision tower is 27 layers and ~0.4B parameters, s
 and its weights are ~0.9 GB, a fraction of a percent of the checkpoint. Self-contained
 enough to be tractable.
 
-## 8. Serving
+## 8. Tools and serving
 
-No HTTP API. Deliberately last: it is product surface, and everything above changes what
-would be served.
+The message model leaves room for tool calls, but there is no tool execution or HTTP API.
+Both remain deliberately late product surface.
 
 ## Explicitly not planned
 

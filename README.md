@@ -10,8 +10,8 @@
 <a href="https://github.com/FareedKhan-dev/kimi-k3-in-c/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/FareedKhan-dev/kimi-k3-in-c/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License"></a>
 <a href="Makefile"><img src="https://img.shields.io/badge/C99-portable-lightgrey?style=flat-square" alt="C99"></a>
-<a href="#requirements"><img src="https://img.shields.io/badge/platform-Linux%20x86--64-lightgrey?style=flat-square" alt="Platform"></a>
-<a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.0.0-brightgreen?style=flat-square" alt="Version"></a>
+<a href="#requirements"><img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform"></a>
+<a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.0.0-brightgreen?style=flat-square" alt="Version"></a>
 </p>
 
 <table>
@@ -70,6 +70,35 @@
 
 <hr>
 
+<sub>The macOS, Windows and NEON ports, chat mode, the <code>ultra</code> preset, the faster MXFP4 kernels, cgroup-aware memory admission and a long list of fixes, most of 2.0.0 among them, came from the people below. <a href="CONTRIBUTORS.md">Who did what</a>.</sub>
+
+<p>
+<a href="https://github.com/douglasmun"><img src="https://avatars.githubusercontent.com/u/12515041?v=4&s=96" width="48" height="48" alt="douglasmun" title="douglasmun"></a>
+<a href="https://github.com/cwwjacobs"><img src="https://avatars.githubusercontent.com/u/251295277?v=4&s=96" width="48" height="48" alt="cwwjacobs" title="cwwjacobs"></a>
+<a href="https://github.com/mahavak"><img src="https://avatars.githubusercontent.com/u/38126162?v=4&s=96" width="48" height="48" alt="mahavak" title="mahavak"></a>
+<a href="https://github.com/sulfierry"><img src="https://avatars.githubusercontent.com/u/22729945?v=4&s=96" width="48" height="48" alt="sulfierry" title="sulfierry"></a>
+<a href="https://github.com/Barba2k2"><img src="https://avatars.githubusercontent.com/u/67913962?v=4&s=96" width="48" height="48" alt="Barba2k2" title="Barba2k2"></a>
+<a href="https://github.com/ShaalanMarwan"><img src="https://avatars.githubusercontent.com/u/26276966?v=4&s=96" width="48" height="48" alt="ShaalanMarwan" title="ShaalanMarwan"></a>
+<a href="https://github.com/TROY665"><img src="https://avatars.githubusercontent.com/u/84645104?v=4&s=96" width="48" height="48" alt="TROY665" title="TROY665"></a>
+<a href="https://github.com/ysgao"><img src="https://avatars.githubusercontent.com/u/1692765?v=4&s=96" width="48" height="48" alt="ysgao" title="ysgao"></a>
+<a href="https://github.com/openchat-ai"><img src="https://avatars.githubusercontent.com/u/274358245?v=4&s=96" width="48" height="48" alt="openchat-ai" title="openchat-ai"></a>
+<a href="https://github.com/arafatsolok"><img src="https://avatars.githubusercontent.com/u/58647359?v=4&s=96" width="48" height="48" alt="arafatsolok" title="arafatsolok"></a>
+<a href="https://github.com/genesisrevelationinc-debug"><img src="https://avatars.githubusercontent.com/u/243808510?v=4&s=96" width="48" height="48" alt="genesisrevelationinc-debug" title="genesisrevelationinc-debug"></a>
+<a href="https://github.com/AuricTW"><img src="https://avatars.githubusercontent.com/u/108772778?v=4&s=96" width="48" height="48" alt="AuricTW" title="AuricTW"></a>
+<br>
+<a href="https://github.com/biokraft"><img src="https://avatars.githubusercontent.com/u/35855749?v=4&s=96" width="48" height="48" alt="biokraft" title="biokraft"></a>
+<a href="https://github.com/cablepull"><img src="https://avatars.githubusercontent.com/u/135179737?v=4&s=96" width="48" height="48" alt="cablepull" title="cablepull"></a>
+<a href="https://github.com/Avicennasis"><img src="https://avatars.githubusercontent.com/u/913872?v=4&s=96" width="48" height="48" alt="Avicennasis" title="Avicennasis"></a>
+<a href="https://github.com/Deobot2"><img src="https://avatars.githubusercontent.com/u/131834087?v=4&s=96" width="48" height="48" alt="Deobot2" title="Deobot2"></a>
+<a href="https://github.com/BlakeEvans22"><img src="https://avatars.githubusercontent.com/u/32441662?v=4&s=96" width="48" height="48" alt="BlakeEvans22" title="BlakeEvans22"></a>
+<a href="https://github.com/FermiHart"><img src="https://avatars.githubusercontent.com/u/100219585?v=4&s=96" width="48" height="48" alt="FermiHart" title="FermiHart"></a>
+<a href="https://github.com/santhoshsathish94"><img src="https://avatars.githubusercontent.com/u/11693712?v=4&s=96" width="48" height="48" alt="santhoshsathish94" title="santhoshsathish94"></a>
+<a href="https://github.com/Irfanwani"><img src="https://avatars.githubusercontent.com/u/62456735?v=4&s=96" width="48" height="48" alt="Irfanwani" title="Irfanwani"></a>
+<a href="https://github.com/rudycelekli"><img src="https://avatars.githubusercontent.com/u/47457359?v=4&s=96" width="48" height="48" alt="rudycelekli" title="rudycelekli"></a>
+<a href="https://github.com/WaleedHU"><img src="https://avatars.githubusercontent.com/u/42546485?v=4&s=96" width="48" height="48" alt="WaleedHU" title="WaleedHU"></a>
+<a href="https://github.com/mechmind-dwv"><img src="https://avatars.githubusercontent.com/u/199835600?v=4&s=96" width="48" height="48" alt="mechmind-dwv" title="mechmind-dwv"></a>
+</p>
+
 </div>
 
 <br>
@@ -86,9 +115,10 @@ $ ./bin/k3 ~/k3model --trunk ~/k3trunk --preset laptop \
 PEAK RSS for the whole run: 8.24 GB
 ```
 
-Slow, and answering correctly, in 8.24 GB, from a checkpoint of 1.56 TB. This is a base
-model, so what follows " Paris." is a continuation rather than a reply; there is no chat
-template. Give it more memory and the answer does not change, only the clock:
+Slow, and answering correctly, in 8.24 GB, from a checkpoint of 1.56 TB. This particular
+batch command deliberately asks for a raw continuation. The official Kimi K3 checkpoint
+is also chat-capable; use the XTML REPL below when you want answers and multi-turn history.
+Give the same batch request more memory and the answer does not change, only the clock:
 
 ```console
 $ ./bin/k3 ~/k3model --trunk ~/k3trunk --preset server \
@@ -188,6 +218,7 @@ component at a time.
 - [Closing the ledger](#closing-the-ledger)
 - [Documentation](#documentation)
 - [Development](#development)
+- [Star history](#star-history)
 - [License](#license)
 
 ---
@@ -201,7 +232,7 @@ The gate is storage: **the checkpoint is 1.56 TB.** Everything else is ordinary.
 | | | |
 |---|---|---|
 | **OS** | Linux, x86-64 (reference); macOS/arm64 and Windows/x86-64 also build and pass every gate | uses `O_DIRECT`, `posix_memalign`, `getrusage` -- ported for Windows via MSYS2's MinGW-w64 (see `src/io/k3_portable_io.h`) |
-| **CPU** | AVX2 + FMA | AVX-512 unnecessary. `make portable` targets generic AVX2 |
+| **CPU** | AVX2 + FMA on x86-64, NEON on arm64 | AVX-512 unnecessary. `make portable` targets generic AVX2 on x86-64 |
 | **RAM** | 8 GB and up | every preset works; more memory is faster, never different |
 | **Storage** | ~1.7 TB free | 1.56 TB checkpoint + 109 GB packed trunk, ideally on fast local disk |
 | **Toolchain** | GCC ≥ 9 or Clang ≥ 10 | GNU make, or CMake |
@@ -375,8 +406,8 @@ run, but `--help`, `--version` and `--list-presets` work without it:
 
 ### Prompt options
 
-Exactly one of these is required. Passing none, or more than one, is a usage error
-(exit 2).
+Outside `--chat`, exactly one of these is required. Passing none, or more than one, is a
+usage error (exit 2).
 
 | flag | argument | |
 |---|---|---|
@@ -404,6 +435,8 @@ printf 'La capitale de la France est' > /tmp/p.txt
 | `--trunk` | `DIR` | off | the packed trunk directory from step 5. **This is what enables streaming.** Without it the trunk loads fully resident, around 113.5 GB |
 | `--trunk-gb` | `X` | 16 | budget for pinned layers plus the streaming ring |
 | `--cache-gb` | `X` | 64 | budget for the routed-expert LRU cache |
+| `--trunk-ring` | `N` | 2 | streaming ring slots: one layer being computed on, the rest reads in flight. Each extra slot costs one slot of RAM, and the budget still wins if it does not fit |
+| `--threads` | `N` | physical cores | OpenMP threads. On Linux the default is the physical core count rather than OpenMP's one thread per logical CPU, which is slower here on SMT parts. `OMP_NUM_THREADS`, if set, is respected |
 | `--ultra-low-memory` | none | off | stream exact embedding rows and lm_head chunks; full recompute also reuses one recurrent-state slot. Requires `--trunk` |
 
 The `ultra` preset selects `--ultra-low-memory` with a 2.5 GB trunk ring and a
@@ -422,7 +455,8 @@ shorthand. Order matters if you mix them: a later flag wins, so
 
 | flag | argument | default | |
 |---|---|---|---|
-| `--gen` | `N` | 8 | tokens to generate. Ceiling 4096; prompts may be up to 32768 tokens |
+| `--gen` | `N` | 8 | tokens to generate. Ceiling 4096; prompts may be up to 32768 tokens. `--gen 0 --incremental --save-state PATH` runs only the prefill and saves its exact state, to warm a prefix once and resume it many times |
+| `--stop-id` | `N` | off | stop as soon as the model emits id `N`; repeatable, up to 8. The released checkpoint declares two end ids that disagree (163586 in `config.json`, 163585 in `tokenizer_config.json`) and emits both, so pass both |
 | `--incremental` | none | off | carry the KV cache and the recurrent state between tokens instead of re-running the whole prefix |
 | `--tok` | `DIR` | none | directory holding `tiktoken.model` and `tokenizer_config.json` |
 
@@ -430,6 +464,63 @@ shorthand. Order matters if you mix them: a later flag wins, so
 entire prefix, which is *O(T²)*; with it, step 0 pays for the prompt and every later step
 costs the same fixed amount. Both paths are gated on producing identical tokens, so this
 is a pure speed choice.
+
+### Text chat (official Kimi K3 XTML)
+
+K3 is chat-capable. `--chat` uses the official XTML segments and tokenizer control tokens;
+it does not fall back to ChatML or a handwritten generic prompt. Version one is text-only:
+there are no tools, images, server, or context compaction.
+
+```bash
+./bin/k3 ~/k3model --trunk ~/k3trunk --preset desktop --tok ~/k3model \
+  --chat --system "You are a helpful assistant." \
+  --history my-session.jsonl --incremental
+```
+
+The REPL accepts ordinary text plus `/help`, `/reset`, and `/exit`. It prints the complete
+canonical record, including `<think>…</think>` and `<response>…</response>`. When
+`--history` is supplied, it writes a portable, human-readable JSONL file such as:
+
+```json
+{"role":"system","content":"You are a helpful assistant."}
+{"role":"user","content":"Explain cache locality."}
+{"role":"assistant","content":"…","reasoning_content":"…"}
+```
+
+Treat that file as sensitive: it can contain every user message and the complete assistant
+reasoning record, which K3 requires to continue a conversation faithfully. On restart the
+engine validates, re-renders, and re-prefills the transcript; it deliberately does not
+serialize opaque KV, MLA, or KDA state. Within one session under `--incremental` the
+state a turn built is kept, and the next turn prefills only its new tail when the
+rendered transcript begins with exactly the ids that state was fed (the REPL prints how
+many positions were reused); `/reset` or any other divergence starts over. A supplied `--system` must exactly match an existing
+initial system record. Literal control-marker text in user messages is encoded as ordinary
+text, never as an XTML control token.
+
+Chat defaults to `--gen 4096` and, like batch generation, to greedy decoding. Passing any
+of `--temperature`, `--top-p`, `--top-k` or `--seed` turns sampling on (temperature `1.0`,
+top-p `0.95` and no top-k cutoff unless given); `--greedy` forces argmax even then.
+`--top-k K` keeps only the K most probable tokens eligible, and with `--top-p` as well the
+nucleus is measured within those K, as the Hugging Face and vLLM samplers do. Sampling uses
+PCG32; `--seed N` deterministically derives one stream per assistant turn, so replaying the
+same transcript with the same seed is reproducible. The 32K prompt / 4096 generation limits
+are existing engine limits, not new chat limits; chat fails clearly and retains the history
+when either context or safe KV allocation is reached.
+
+Thinking is on by default with `thinking_effort=max`, which is exactly what the checkpoint's
+own tokenizer does when `apply_chat_template` is given nothing; `--thinking-effort low` or
+`high` changes only that setting. `--no-think` is the encoder's `thinking=False`: no
+thinking-effort system message, prior assistant turns rendered without a think channel, and
+a generation prompt that opens the response channel directly, so the model answers at once
+and the REPL prints no `<think>` block. On a streamed trunk this is the largest speed lever
+there is: in a real-checkpoint run, 119 of the 150 tokens of a five-word answer were the
+think block. Reasoning already stored in the transcript is left in place and is rendered
+again the next time the conversation runs with thinking on. Both flags are byte- and
+id-exact against the official tokenizer in `tests/unit/test_chat.c`.
+
+Chat uses the same CPU-only streamed trunk and routed-expert cache as batch mode. `--preset`,
+`--trunk-gb`, and `--cache-gb` keep exactly their existing meanings: no experts are preloaded
+and the trunk remains disk-streamed unless those existing memory flags ask otherwise.
 
 ### Diagnostic options
 
@@ -450,14 +541,16 @@ Scripts can rely on these.
 | `0` | success |
 | `1` | a tensor failed to bind, or a forward pass failed |
 | `2` | usage error, or a config that could not be read with confidence; the engine declines to guess |
+| `3` | the run finished but an output file could not be written: the `--out` JSON, the `--dump-logits` file or the `--dump-cache-trace` files, so results a harness reads are missing or incomplete |
 | `4` | the run finished, but at least one routed expert failed to load, so the emitted ids are unsound. Distinct from `1` because the process otherwise succeeded, and it is the code that catches silent numerical corruption |
+| `5` | stopped early by Ctrl-C. The step in flight finished, and the state file, `--out` and the reports were all written, but the token list is shorter than asked for. A second Ctrl-C kills the process instead |
 
 ### Environment variables
 
 | variable | used by | |
 |---|---|---|
 | `HF_TOKEN` | `download-model.sh` | HuggingFace token, read from the environment and never echoed |
-| `OMP_NUM_THREADS` | the engine | thread count, defaulting to all cores |
+| `OMP_NUM_THREADS` | the engine | thread count. When neither this nor `--threads` is given, Linux defaults to the physical core count |
 | `K3_TOK_FILES` | tokenizer tools and CI | directory holding `tiktoken.model`, when it is not in a default location |
 | `K3_MODEL_DIR` | `tools/budget.py` | checkpoint directory, when not given as an argument |
 
@@ -538,6 +631,9 @@ Two things worth knowing before you pick:
 
 - **`max` is not faster than `server`** in these measurements. The extra 96 GB buys nothing
   outside the noise floor.
+- **A preset needs a little more free memory than its peak RSS.** The engine refuses any
+  plan above 95% of available memory, to leave room for everything outside the plan, so
+  `server` at about 128 GB needs roughly 135 GB available, not 128.
 - **Give the trunk memory before the expert cache.** At a fixed 128 GB budget that was
   worth 1.69×. [Allocation beats capacity](#allocation-beats-capacity) has the data.
 
@@ -591,6 +687,21 @@ hour in. Shorten the request, or drop `--incremental`, which carries no KV cache
 
 **Is the whole 1.56 TB needed?** For generation, yes. For development, no: `make test`
 needs nothing at all, and `--layers N` runs against partial shard sets.
+`scripts/download-model.sh <dest> --layers N` fetches only the shards those layers need,
+about 7 GB for `N=1` and 125 GB for `N=8`. That is for exercising the pipeline on a small
+disk; a layer prefix is not the model and does not produce its output.
+
+**Why no BLAS?** Because every matmul here has to give the same bits on every machine.
+The test suite checks the engine against a PyTorch reference exactly, not to a tolerance,
+and that only works if the order in which each dot product is summed is fixed and known.
+A BLAS library chooses its own blocking and reduction order, which can differ between
+versions, between vendors (OpenBLAS, MKL, Accelerate), and between thread counts on the
+same machine. Each of those answers is numerically correct and none of them matches the
+others bit for bit. The kernels in `src/core/k3_ops.c` exist to pin that order: the AVX2
+and NEON paths reproduce the scalar reduction exactly, and `test_ops` checks they do.
+It also keeps the build free of a dependency that installs differently on each
+platform, for kernels that are not the bottleneck anyway. A run is limited by how fast
+the trunk and the experts come off disk, not by arithmetic.
 
 **macOS, Windows, WSL?** Linux is the reference platform. macOS/arm64 builds with plain
 `make` (see the Makefile's platform block). Windows builds natively too, via MSYS2's
@@ -613,6 +724,8 @@ anywhere, in CI included.
 ---
 
 # Part II: How it works
+
+*The code in this part is condensed from the source for reading: names, comments and error handling are sometimes simplified, and paths a section does not discuss are left out. The files under [`src/`](src/) are the reference.*
 
 ## The problem: a model that does not fit
 
@@ -773,7 +886,7 @@ src/
   core/k3_ops.c     # every numeric kernel: RMSNorm, KDA, MLA, MoE, MXFP4 matmul
   io/k3_st.c        # safetensors reader, hand-written JSON scan, O_DIRECT reads
   io/k3_load.c      # locating one expert's bytes inside a shard
-  io/k3_trunk.c     # streaming the dense trunk, pinned prefix plus a ring slot
+  io/k3_trunk.c     # streaming the dense trunk, pinned layers plus a ring slot
   cache/k3_cache.c  # the routed-expert LRU cache and its batch prefetch
   model/k3_bind.c   # binding checkpoint tensor names to kernel arguments
   tokenizer/k3_tok.h# byte-level BPE loaded from tiktoken.model
@@ -946,7 +1059,9 @@ int64_t k3_st_read_aligned(const K3St *s, int shard, int64_t off, int64_t nbytes
 
     int64_t got = 0;
     while (got < len) {
-        ssize_t r = pread(dfd, (char *)buf + got, (size_t)(len - got), (off_t)(lo + got));
+        /* at most K3_PREAD_MAX (1 GiB) per call: Darwin refuses one pread of 2 GiB or more */
+        const int64_t req = (len - got < K3_PREAD_MAX) ? (len - got) : K3_PREAD_MAX;
+        ssize_t r = pread(dfd, (char *)buf + got, (size_t)req, (off_t)(lo + got));
         if (r <= 0) break;      /* the last window may run past EOF */
         got += r;
     }
@@ -1572,9 +1687,18 @@ void k3_kda_step(float *S, float *o, const float *q, const float *k,
         for (int j = 0; j < dv; j++) row[j] *= a;
     }
 
-    /* 2. read the state along k: u = S^T k */
-    float *u = (float *)calloc((size_t)dv, sizeof(float));
-    if (!u) k3_fatal_oom("KDA recurrence temporary", (size_t)dv * sizeof(float));
+    /* 2. read the state along k: u = S^T k. This runs once per head per token per KDA
+     *    layer, 6,624 times per token, so u lives on the stack rather than the heap */
+    float  ubuf[K3_KDA_STEP_DV];
+    float *uheap = NULL;
+    float *u = ubuf;
+    if (dv > K3_KDA_STEP_DV) {
+        uheap = (float *)calloc((size_t)dv, sizeof(float));
+        if (!uheap) k3_fatal_oom("KDA recurrence temporary", (size_t)dv * sizeof(float));
+        u = uheap;
+    } else {
+        for (int j = 0; j < dv; j++) u[j] = 0.0f;   /* calloc's zeroing, explicitly */
+    }
     for (int i = 0; i < dk; i++) {
         const float ki = k[i];
         if (ki == 0.0f) continue;
@@ -1598,7 +1722,7 @@ void k3_kda_step(float *S, float *o, const float *q, const float *k,
         const float *row = S + (size_t)i * dv;
         for (int j = 0; j < dv; j++) o[j] += qi * row[j];
     }
-    free(u);
+    free(uheap);                                  /* free(NULL) is a no-op */
 }
 ```
 
@@ -1746,7 +1870,8 @@ only that, and rebuilds the per-head keys and values from it when they are neede
 ![The query and the token both pass through a small shared latent](docs/images/mla-latent.png)
 
 The latent is 512 dimensions for the key and value content plus 64 more, and those 64 are
-where **invariant four** lives.
+where **invariant four** lives. In the engine this projection is the first step of
+`k3_mla_cached` in `src/core/k3_ops.c`; condensed, it looks like this.
 
 ```c
 /* NoPE: the 64 rope dimensions are projected and cached, but never rotated. */
@@ -1773,8 +1898,12 @@ readable output.
 ```c
     for (int t = 0; t < T; t++) {
         const int p = cached + t;
+#ifdef _OPENMP
+#       pragma omp parallel for schedule(static)
+#endif
         for (int h = 0; h < H; h++) {
             const float *qt = q + ((size_t)t * H + h) * qh;
+            float *sch = sc + (size_t)h * (last + 1);     /* this head's scores only */
             float m = -INFINITY;
             for (int s = 0; s <= p; s++) {                 /* causal: s <= p */
                 const float *ks = K3_KV_AT(s) + (size_t)h * kvd;
@@ -1784,18 +1913,19 @@ readable output.
                 /* the rope slot is UNROTATED but still scored, and the SAME 64
                  * values serve every head */
                 for (int i = 0; i < qr; i++) d += (double)qt[qn + i] * (double)kr[i];
-                sc[s] = (float)d * scale;
-                if (sc[s] > m) m = sc[s];
+                sch[s] = (float)d * scale;
+                if (sch[s] > m) m = sch[s];
             }
             double z = 0.0;
-            for (int s = 0; s <= p; s++) { sc[s] = expf(sc[s] - m); z += sc[s]; }
+            for (int s = 0; s <= p; s++) { sch[s] = expf(sch[s] - m); z += sch[s]; }
 ```
 
 The score is two dot products added together. The first runs over the 128 content
 dimensions, which are per head. The second runs over the 64 rope dimensions, which are
 **shared**: `K3_ROPE_AT(s)` takes no head index, so all 96 heads score against the same 64
 numbers. That is what makes the cache 576 wide instead of 96 × 320, and skipping the
-second term is the quiet way to get a model that still speaks.
+second term is the quiet way to get a model that still speaks. Each head writes its scores
+to its own row of `sc`, which is what lets the 96 heads run in parallel.
 
 ![Twenty-four MLA layers, expanded k and v in fp32, per position](docs/images/eq_mla_kv.png)
 
@@ -1814,8 +1944,10 @@ discovering the problem an hour in:
 /* The context limit is the MLA KV cache, not any array size. */
 if (incremental) {
     const double kv_need = (double)(np + gen + 1) * K3_KV_BYTES_PER_POS;
-    const double avail   = mem_available_bytes();
-    if (avail > 0.0 && kv_need > avail * 0.9) {
+    K3MemAvail mp;
+    const double avail   = mem_available_bytes(&mp);  /* MemAvailable, capped by any cgroup limit */
+    if (mp.malformed) return 2;                         /* a limit file we cannot read: refuse */
+    if (mp.known && kv_need > avail * 0.9) {
         fprintf(stderr,
             "\nREFUSING: the KV cache for %d positions needs %s but only %s is\n"
             "available. This is a MEMORY limit, not an engine ceiling: MLA caches\n"
@@ -2238,9 +2370,9 @@ where to keep it.
 
 ![Pinned layers cost nothing to read, everything else comes through one ring slot](docs/images/trunk-stream.png)
 
-The design is a pinned prefix plus one rotating slot. Whatever fits in the budget gets
-pinned permanently, and the rest cycles through a single ring buffer. Critically, it is a
-**prefix** and not a cache.
+The design is a pinned set of layers plus one rotating slot. Whatever fits in the budget
+gets pinned permanently, and the rest cycles through a single ring buffer. Critically, it
+is a **fixed set** and not a cache.
 
 The engine walks layers 0 through 92 in the same order on every token. That is a cyclic
 scan, and a cyclic scan is the pathological case for least-recently-used eviction: by the
@@ -2248,29 +2380,45 @@ time layer 0 comes round again it is the least recently used thing in the cache,
 always just been evicted.
 
 An LRU of 90 slots over a 93-layer cycle achieves a hit rate of **exactly zero**. Pinning
-the first N layers instead gives a deterministic hit rate of N/93, which for N = 90 is 96.8
+N layers instead gives a deterministic hit rate of N/93, which for N = 90 is 96.8
 percent. The obvious data structure is not merely suboptimal here; it is wrong in the worst
 possible direction, returning zero where the trivial approach returns almost one.
 
+Which layers to pin still matters, because of the ring. Its slot has to hold the largest
+layer that still streams, and the largest layer is layer 0, the only dense one, at 2.34 GB.
+Pinning a prefix took layer 0 first, which left the slot sized for a layer that no longer
+used it: about 1.17 GB wasted at every budget above the floor. So the engine pins the
+largest layers first and keeps taking smaller ones that still fit. `K3_PIN_PREFIX=1`
+restores the old prefix order, for comparison.
+
 ```c
-/* Pinned count and slot size are mutually dependent, so iterate to a fixed point. */
-size_t slot = tr->max_run;                 /* start assuming nothing is pinned */
-int npin = 0;
-for (int pass = 0; pass < 4; pass++) {
-    size_t avail = budget > slot * (size_t)nring ? budget - slot * (size_t)nring : 0;
-    int n = 0;
-    size_t used = 0;
-    while (n < tr->n_layers && used + tr->lay[n].nbytes <= avail) {
-        used += tr->lay[n].nbytes;
-        n++;
+/* Ring slot and pinned set depend on each other, so iterate to a fixed point. order[]
+ * holds the layers sorted by size, largest first. */
+for (int pass = 0; pass < 8; pass++) {
+    int64_t big = 0;                                   /* largest layer still streaming */
+    for (int i = 0; i < tr->n_layers; i++)
+        if (!chosen[i] && tr->lay[i].nbytes > big) big = tr->lay[i].nbytes;
+    if (big == 0) big = tr->lay[tr->n_layers - 1].nbytes;   /* all pinned */
+    int64_t rs = (big + K3_TRUNK_ALIGN - 1) & ~(int64_t)(K3_TRUNK_ALIGN - 1);
+    rs += (int64_t)widen;                              /* room to widen bf16 tensors */
+    rs = (rs + 4095) & ~(int64_t)4095;
+
+    RING = RING_WANT;                                  /* the ring must fit first */
+    while (RING > 1 && (int64_t)RING * rs > budget_bytes) RING--;
+
+    int64_t sp = (int64_t)RING * rs;
+    int np = 0;
+    memset(chosen, 0, (size_t)tr->n_layers);
+    for (int i = 0; i < tr->n_layers; i++) {
+        const int L = order[i];
+        const int64_t need = tr->lay[L].nbytes + (int64_t)widen;
+        if (sp + need > budget_bytes) continue;        /* too big: keep trying smaller ones */
+        sp += need;
+        chosen[L] = 1;
+        np++;
     }
-    size_t need = 0;                       /* largest run still not pinned */
-    for (int L = n; L < tr->n_layers; L++)
-        if (tr->lay[L].nbytes > need) need = tr->lay[L].nbytes;
-    if (need == 0) need = 4096;            /* everything pinned: degenerate but valid */
-    if (n == npin && need == slot) break;  /* converged */
-    npin = n;
-    slot = k3_align_up(need, K3_TRUNK_ALIGN);
+    if (rs == ring_slot && np == npin) { ring_slot = rs; spent = sp; break; }   /* converged */
+    ring_slot = rs; npin = np; spent = sp;
 }
 ```
 
@@ -2284,14 +2432,17 @@ are allocated on 2 MB hugepages instead.
 ```c
 /* Add up EVERYTHING before allocating anything. */
 const double need_b = w_trunk + w_model + w_cache + w_state + w_buf + w_kv;
-const double have = mem_available_bytes();      /* MemAvailable, not MemFree */
+K3MemAvail mp;
+const double have = mem_available_bytes(&mp);   /* MemAvailable, capped by any cgroup limit */
+if (mp.malformed) return 1;                      /* a limit file we cannot read: refuse */
 
-if (need_b > have * 0.95) {
+if (mp.known && need_b > have * K3_MEM_ADMIT) {  /* K3_MEM_ADMIT is 0.95 */
     fprintf(stderr,
-            "\nREFUSING TO START: this needs %s and the machine has %s "
-            "available, a shortfall of %s.\n"
+            "\nREFUSING TO START: this needs %s. The machine has %s available "
+            "and a plan may use at most %s of that, so this is %s over the "
+            "limit.\n"
             "Options: a larger box, a smaller --cache-gb, or fewer --layers.\n",
-            b6, b1, b2);
+            b6, b1, b8, b2);
     return 1;
 }
 ```
@@ -2304,14 +2455,19 @@ it, in the output, as the number to quote.
 ![One token: embed, walk 93 layers, aggregate, project to the vocabulary](docs/images/forward-pass.png)
 
 ```c
-/* One full forward over T tokens, writing logits for the LAST position only. */
+/* One full forward over T tokens, writing logits for the LAST position only.
+ * Condensed: the ultra preset's streamed embeddings and shared state slot, the draft
+ * mode of speculative decoding, the routed-expert failure check and the all-positions
+ * argmax (arg_all) are left out. */
 static int forward(Weights *w, const K3Cfg *c, K3Cache *cache, const int *ids, int T,
-                   float *logits_last, float *scratch, float *h, float *br, float *kstate)
+                   float *logits_last, float *scratch, float *h, float *br, float *kstate,
+                   int *arg_all)
 {
     const int E = c->hidden;
     const int maxb = c->n_layers / c->attn_res_block + 2;
-    const int P = c->kda_heads * c->kda_head_dim;
-    const size_t kper = (size_t)P * c->kda_head_dim + (size_t)3 * P * (c->conv_k - 1);
+    int64_t kper64, kvpp_, ropepp_;
+    k3_state_geom(c, &kper64, &kvpp_, &ropepp_);   /* KDA and ShortConv state per layer */
+    const size_t kper = (size_t)kper64;
 
     for (int t = 0; t < T; t++)
         k3_embed_row(h + (size_t)t * E, w->mb.embed, w->mb.wdt, ids[t], E);
@@ -2418,7 +2574,8 @@ PEAK RSS for the whole run: 25.83 GB   <- quote this, not the plan
 
 It works, and it is **169.75 seconds per token**, which is unusable. Almost everything in
 [Part IV](#part-iv-measurements) is about walking that number down to 10.66, and the
-thing that fixes it is not the obvious one.
+thing that fixes it is not the obvious one. The run predates 2.0.0, which pins the
+largest layers first instead of a prefix, as explained above.
 
 Pushing the other way, with nothing pinned at all and an expert cache under two gigabytes:
 
@@ -2449,18 +2606,41 @@ Holding the trunk resident instead spends **150 seconds just loading weights** b
 first token, asks for 315 GB, and needs a machine with 755 GB free to be allowed to start.
 
 ```c
-/* Offset and length are both 4096-aligned, so this is a plain pread with no fixup. */
-static int load_run(K3Trunk *tr, int L, unsigned char *dst)
+/* Offset and length are both 4096-aligned, so these are plain preads with no fixup. The
+ * layer is read in 64 MiB chunks by several threads at once, and the timing and byte
+ * count come back through out-parameters, since two threads call this concurrently. */
+static int load_run_to(K3Trunk *tr, int L, unsigned char *dst,
+                       double *secs, int64_t *bytes)
 {
-    const K3Run *r = &tr->lay[L];
-    size_t got = 0;
-    while (got < r->nbytes) {
-        const ssize_t n = pread(tr->fd, dst + got, r->nbytes - got,
-                                (off_t)(r->off + got));
-        if (n <= 0) return -1;      /* a short read is a corrupt layer */
-        got += (size_t)n;
+    const K3TrunkLayer *lay = &tr->lay[L];
+    const double t0 = now_s();
+    const int64_t nb = lay->nbytes;
+    const int nchunk = (int)((nb + K3_TRUNK_CHUNK - 1) / K3_TRUNK_CHUNK);
+    volatile int failed = 0;
+#ifdef _OPENMP
+#   pragma omp parallel for schedule(dynamic, 1)
+#endif
+    for (int ci = 0; ci < nchunk; ci++) {
+        if (failed) continue;
+        const int64_t base = (int64_t)ci * K3_TRUNK_CHUNK;
+        const int64_t len = (nb - base < K3_TRUNK_CHUNK) ? nb - base : K3_TRUNK_CHUNK;
+        int64_t got = 0;
+        while (got < len) {
+            int64_t want = len - got;
+            if (want > K3_PREAD_MAX) want = K3_PREAD_MAX;
+            ssize_t r = pread(tr->fd, dst + base + got, (size_t)want,
+                              (off_t)(lay->file_off + base + got));
+            if (r <= 0) { failed = 1; break; }       /* a short read is a corrupt layer */
+            got += r;
+        }
     }
-    tr->bytes_read += got;
+    if (failed) {
+        fprintf(stderr, "k3_trunk: short read on layer %d\n", L);
+        *secs = now_s() - t0; *bytes = 0;
+        return -1;
+    }
+    *secs = now_s() - t0;
+    *bytes = nb;
     return 0;
 }
 ```
@@ -2826,8 +3006,8 @@ arithmetic and no evidence at all about output quality.
 
 **Paris.** The first token out of a 2.78 trillion parameter model running on a CPU in a few
 gigabytes of RAM is the right answer. The trailing quote and the "The Eiffel" continuation
-are not a defect: with no chat template and no instruction tuning in the loop, this is a
-base model continuing text. It has decided it is inside a JSON list of sentences about
+are not a defect: that raw-completion test supplies no XTML chat turn, so the model is
+continuing text. It has decided it is inside a JSON list of sentences about
 France, and it is continuing that list.
 
 ```text
@@ -3349,11 +3529,14 @@ Raw data: [`docs/data/trunk-quantisation.txt`](docs/data/trunk-quantisation.txt)
 
 ## Scope
 
-- **No chat template.** Base model continuations, not replies.
-- **Greedy decoding only.** No temperature, no top-p, no top-k. Greedy is what keeps the
-  output identical across budgets.
-- **No chunked prefill.** The ceiling is 32,768 tokens, but a 21,000 token prompt is one
-  quadratic pass.
+- **Text-only XTML chat.** K3 system/user/assistant conversations and their reasoning
+  history are supported. Tools, vision/image parts, HTTP serving, and context compaction are
+  not yet supported.
+- **Batch remains greedy.** Its outputs remain identical across memory budgets. Chat alone
+  adds opt-in temperature/top-p sampling and `--greedy`.
+- **No chunked prefill.** The ceiling is 32,768 tokens, and a 21,000 token prompt is still
+  one quadratic pass. Since 2.0.0 its MLA attention runs across all cores instead of one,
+  but every prompt token still re-reads the trunk for its projections.
 - **Context is bounded by memory, not by the engine.**
 
 ![The advertised million-token context is a memory fact, not an engine limit](docs/images/eq_context_ceiling.png)
@@ -3417,6 +3600,18 @@ Fixtures are generated from the PyTorch reference and committed;
 [`tests/fixtures/README.md`](tests/fixtures/README.md) records what makes each one
 adversarial and how to regenerate it. [`CONTRIBUTING.md`](CONTRIBUTING.md) is the place to
 start.
+
+## Star history
+
+<p align="center">
+<a href="https://www.star-history.com/#FareedKhan-dev/kimi-k3-in-c&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=FareedKhan-dev/kimi-k3-in-c&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=FareedKhan-dev/kimi-k3-in-c&type=Date" />
+   <img alt="Star history of FareedKhan-dev/kimi-k3-in-c" src="https://api.star-history.com/svg?repos=FareedKhan-dev/kimi-k3-in-c&type=Date" />
+ </picture>
+</a>
+</p>
 
 ## License
 
